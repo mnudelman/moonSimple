@@ -141,10 +141,10 @@ class MoonAzimuthReport extends Report
 // тестовые данные
             $mbObj = $this->upDnMbObj ;
             $r = $mbObj->azHClc($ts) ;
-            $cpO->setAttribute('az-test',$r['az'])  ;
-            $cpO->setAttribute('h-test',$r['h'])  ;
             $azTest = $r['az'] ;
             $hTest =  $r['h'] ;
+            $cpO->setAttribute('az-test',$azTest)  ;
+            $cpO->setAttribute('h-test',$hTest)  ;
 //-----------------
             switch ($type) {
                 case 'p':        // простая точка расчёта

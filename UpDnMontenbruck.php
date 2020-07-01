@@ -20,6 +20,11 @@ class UpDnMontenbruck extends Common
     public function setPoint($lat,$long,$radFlag = false) {
         $this->latitudeRad = ($radFlag) ? $lat : deg2rad($lat);
         $this->longitudeRad = ($radFlag) ? $long : deg2rad($long);
+        $lat = $this->latitudeRad ;
+        $long = $this->longitudeRad ;
+        $upDnObj = $this->upDnObj
+            ->setGeographCoord($lat, $long,true) ;
+
         return $this;
     }
     public function setTime($dt,$tsFlag = false) {
@@ -39,14 +44,18 @@ class UpDnMontenbruck extends Common
     /**
      * расчёт азимута и высоты на тек момент времени
      * @param $ts
+     * @param bool $moonFlag - это Луна(true или умолчание) или Солнце (false)
      */
-    public function azHClc($ts) {
+    public function azHClc($ts,$moonFlag = true) {
         $upDnObj = $this->upDnObj ;
         $tF = $this->decomposeDate($ts,true) ;
         $td = $tF['y'] . '-' . $tF['m'] . '-' . $tF['d'] . ' ' .
             $tF['h'] . ':' . $tF['i'] . ':' . $tF['s'] ;
-        $vOut = $upDnObj->setTime($td)
-            ->miniMoon1();
+//        $vOut = $upDnObj->setTime($td)
+//            ->miniMoon1();
+        $upDnObj->setTime($td) ;
+        $vOut = ($moonFlag) ? $upDnObj->miniMoon1() : $upDnObj->miniSun1() ;
+
         $tf = $this->decomposeDate($ts,true) ;
         $dt = $tf['y'] . '-' . $tf['m'] . '-' . $tf['d'] . ' ' .
             $tf['h'] . ':' . $tf['i'] . ':' . $tf['s'] ;
@@ -155,11 +164,11 @@ class UpDnMontenbruck extends Common
         $tab = [] ;
         $n = ($tsEnd - $tsBeg) / $tsStep ;
         $ts = 0 ;
-        $lat = $this->latitudeRad ;
-        $long = $this->longitudeRad ;
-        $upDnObj = $this->upDnObj ;
-
-        $vOut = $upDnObj->setGeographCoord($lat, $long,true) ;
+//        $lat = $this->latitudeRad ;
+//        $long = $this->longitudeRad ;
+//        $upDnObj = $this->upDnObj ;
+//
+//        $vOut = $upDnObj->setGeographCoord($lat, $long,true) ;
 
         for ($i = 0; $i <= $n; $i++) {
             $ts = $tsBeg + $i * $tsStep;

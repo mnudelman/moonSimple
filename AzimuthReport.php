@@ -12,6 +12,7 @@ class AzimuthReport extends Report
     private $aPoZObj = null;         // объект AnglePoZPhi - азимут в точках восхода/заката
     private $cpObj = null ;          // объект CyclePoints - точки расчёта
     private $haObj = null ;          // объект HeightAndAzimuth - азимут и высота над горизонтом
+    private $upDnMbObj ;             // UpDnMontenbruck - алгоритмы от Монтенбрук ...
     private $orbitObj = null ;
     private $planetId ; //  - ид планеты
     private $orbitType  ; // - тип орбиты
@@ -20,6 +21,7 @@ class AzimuthReport extends Report
     public function __construct() {
         $this->setDates() ;
         $this->setObjects() ;
+        $this->upDnMbObj = new UpDnMontenbruck() ;
         $this->udtObj = new UpDownTuning() ;      // вычисление восхода/заката
         $this->aPoZObj = new AnglePoZPphi() ;  // азимут восхода/заката
         $this->cpObj = new CyclePoints();          // расчётные точки
@@ -77,6 +79,15 @@ class AzimuthReport extends Report
     private function cycleDo($theta0,$date0,$latitudeGrad) {
         $haO = $this->haObj ;     // объект HeightAndAzimuth
 
+        $upDnMbObj = $this->upDnMbObj ;
+        $lat = $this->objectTab[$this->currentKey]['lat'] ;
+        $long = $this->objectTab[$this->currentKey]['long'] ;
+        $upDnMbObj->setPoint($lat, $long) ;
+
+
+
+
+
         $haO->setTheta($theta0)
         ->setLatitude($latitudeGrad) ;      // широта
 
@@ -95,6 +106,15 @@ class AzimuthReport extends Report
                     $haO->setDayTimeType($dayTime) ;
                 }
             }
+            // тестовые данные
+            $moonFlag = false ;    // значит Солнце
+            $rMb = $upDnMbObj->azHClc($ts,$moonFlag) ;
+            $azTest = $rMb['az'] ;
+            $hTest =  $rMb['h'] ;
+
+            $cpO->setAttribute('az-test',$azTest)  ;
+            $cpO->setAttribute('h-test',$hTest)  ;
+
             switch ($type) {
                 case 'p':        // простая точка расчёта
                     $this->heightAzimuthDo($psi,$dayTime) ;
@@ -227,23 +247,44 @@ class AzimuthReport extends Report
         return $r ;
 
     }
-    private function makeRow($r) {
+    private function makeRow($r)
+    {
         $ts = $r['ts'];
-        $tf = $this->decomposeDate($ts,true) ;
-        $time = $tf['h'] . ':' . $tf['i'] . ':' . $tf['s'] ;
+        $tf = $this->decomposeDate($ts, true);
+        $time = $tf['h'] . ':' . $tf['i'] . ':' . $tf['s'];
         $psi = $r['psi'];
-        $psiGrad = round($psi / pi() * 180,4) ;
+        $psiGrad = round($psi / pi() * 180, 4);
         $typePoint = $r['type'];
         $dayTime = $r['dayTime'];
-        $height = round($r['height'],4) ;
-        $azimuth = round($r['azimuth'],4) ;
-        $this->setCell('ts',$ts) ;
-        $this->setCell('time',$time) ;
-        $this->setCell('angle',$psiGrad) ;
-        $this->setCell('type-point',$typePoint) ;
-        $this->setCell('dayTime',$dayTime) ;
-        $this->setCell('azimuth',$azimuth) ;
-        $this->setCell('height',$height) ;
+        $height = round($r['height'], 4);
+        $azimuth = round($r['azimuth'], 4);
+        if (!is_null($r['az-test']) && !is_null($r['azimuth'])) {
+            $azTest = round($r['az-test'], 3);
+            $azDelta = round($azimuth - $azTest, 1);
+        } else {
+            $azTest = '   -';
+            $azDelta = '   -';
+        }
+        if (!is_null($r['h-test']) && !is_null($r['height'])) {
+            $hTest = round($r['h-test'], 2);
+            $hDelta = round($hTest - $height, 1);
+        } else {
+            $hTest = '   -';
+            $hTest = '   -';
+        }
+
+        $this->setCell('ts', $ts);
+        $this->setCell('time', $time);
+        $this->setCell('angle', $psiGrad);
+        $this->setCell('type-point', $typePoint);
+        $this->setCell('dayTime', $dayTime);
+        $this->setCell('azimuth', $azimuth);
+        $this->setCell('height', $height);
+
+        $this->setCell('az-test', $azTest);
+        $this->setCell('h-test', $hTest);
+        $this->setCell('az-delta', '<b>' . $azDelta . '</b>');
+        $this->setCell('h-delta', '<b>' . $hDelta . '</b>');
 
         $this->rowOut();
     }
@@ -269,6 +310,11 @@ class AzimuthReport extends Report
             'dayTime',      // светлое/тёмное время
             'azimuth',      // азимут
             'height',       // высота
+            'az-test',
+            'h-test',
+            'az-delta',
+            'h-delta',
+
         ] ;
         $this->setCap($cap) ;
     }
