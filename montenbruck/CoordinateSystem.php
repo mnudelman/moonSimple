@@ -469,42 +469,228 @@ class CoordinateSystem extends montenbruck\Mat3D
         ],
     ] ;
     }
+
+    /**
+     * @return array
+     */
+    public function miniSun()
+    {
+        $jd = $this->jdTime;
+        $t = $this->jdTCenture;
+        $mjd = $this->mjdTime;
+        $phi = $this->latitude;       // широта
+        $lambda = $this->longitude;   // долгота
+        //  Средние элементы лунной орбиты
+        $pi2 = 2 * pi();
+        $m = $pi2 * $this->frac(0.993133 + 99.997361 * $t) ;
+// эклиптическая долгота
+        $l = $pi2 * $this->frac(0.7859453 + $m / $pi2 +
+                (6893.0 * sin($m) + 72.0 * sin(2 * $m) + 6191.2 * $t) / (1296.0 * 1000) ) ;
+    echo 'l-эклипт долгота: ' . $l . '<br>' ;
+    $beta  = 0 ;
+    $lambda = $l ;
+        $n = $jd - 451545.0;       // n is the number of days from J2000.0.
+        $lambdaRad = deg2rad($lambda);
+        $epsilon = 23.439 - 0.0000004 * $n;                      // наклон орбиты Зимли к эклиптике
+        $epsilonRad = deg2rad($epsilon) ;
+        $alpha = atan(cos($epsilonRad) * tan($lambdaRad));
+
+        $x = cos($lambdaRad);
+        $y = cos($epsilonRad) * sin($lambdaRad);
+        $a = $this->getAngl($x, $y);
+        $alpha = $a['rad'];
+        $delta = asin(sin($epsilonRad) * sin($lambdaRad));
+        echo '<b>equ:alpha,delta::' . $alpha . '; ' . $delta . '</b><br>' ;
+
+
+        //  экваториальные координаты
+        $l = cos(deg2rad($beta)) * cos(deg2rad($lambda)) ;
+        $m = 0.9175 * cos(deg2rad($beta)) * sin(deg2rad($lambda))
+            - 0.3978 * sin(deg2rad($beta)) ;
+        $n = 0.3978 * cos(deg2rad($beta)) * sin(deg2rad($lambda)) + 0.9175 * sin(deg2rad($beta)) ;
+        $a = $this->getAngl($l,$m) ;
+        $alpha = $a['rad'] ;
+
+        $delta = asin($n) ;
+//=============================================================================
+        return [
+            'eql' => [                    // эклиптическая система
+                'lambda' => $lambda,
+                'lambdaMod' => $this->modulo($lambda, 360),
+                'beta' => $beta,
+            ],
+            'equ' => [                   // экваториальная система
+                'alpha' => rad2deg($alpha),
+                'delta' => rad2deg($delta),
+            ],
+
+        ];
+    }
+    public function miniSun1()
+    {
+// astronomical almanac for the year 1997
+//  результат, не(!) совпадающий с miniSun
+// https://babel.hathitrust.org/cgi/pt?id=uc1.31822016402356&view=1up&seq=238
+//  C24
+//Low precision formulas for the Sun's coordinates and the equation of time
+//The following formulas give the apparent coordinates of the Sun to a precision of 0°.01 and
+// the equation of time to a precision of 0".1 between 1950 and2050;on this page the time
+// argument n is the number of days from J2000.0.
+//n=JD–2451545.0=–1096.5+day of year(B2—B3)+fraction of day from 0h UT
+// Mean longitude of Sun, corrected for aberration: L=280°.472+0°.9856474n
+//Mean anomaly: g= 357°.528+0°.9856003n
+//Put L and g in the range 0° to 360° by adding multiples of 360°.
+//Ecliptic longitude:  lambda = L+1°.915 * sin(g) + 0°.020 * sin(2g)
+//Ecliptic latitude:   beta=0°
+//Obliquity of ecliptic: epsilon =23°.439–0°.0000004n
+//Right ascension (in same quadrant as lambda): alpha = tan^-1(cos(epsilon)tan(lambda))
+//Alternatively, alpha may be calculated directly from
+//alpha = lambda – f*t*sin(2*lambda) + (f/2)t^2 * sin(4lambda)
+//      where f=180/pi  and t=tan^2(epsilon/2)
+//Declination:delta = sin^-1(sin(epsilon) * sin(lambda))
+//Distance of Sun from Earth,in au: R=1.00014–0.01671*cos(g) – 0.00014*cos(2g)
+//Equatorial rectangular coordinates oft he Sun,in au:
+//x = R*cos(lambda),   y = R*cos(epsilon) * sin(lambda),   z = R*sin(epsilon) * sin(lambda)
+//Equation of time(apparent time minus mean time):
+//        E,in minutes of time = (L – alpha),in degrees, multiplied by 4.
+//Horizontal parallax: 0°.0024
+//Semidiameter : 0°.2666/R
+// Light time:04d.0058
+//-----------------------------------------------------------------------------------//
+        $jd = $this->jdTime;
+        $mjd = $this->mjdTime;
+        $lat = $this->latitude;       // широта
+        $long = $this->longitude;   // долгота
+        $t = ($jd - 2451545.0) / 36525;
+        $n = $jd - 2451545.0;       // n is the number of days from J2000.0.
+        $l = 280.472 + 0.9856474 * $n;    // aberration:
+        $g = 357.528 + 0.9856003 * $n;    // anomaly:
+
+//Put $l and $g in the range 0° to 360° by adding multiples of 360°.
+        $g = $this->modulo($g, 360);
+        $l = $this->modulo($l, 360);
+        $epsilon = 23.439 - 0.0000004 * $n;                      // наклон орбиты Зимли к эклиптике
+        $gRad = deg2rad($g);
+        $epsilonRad = deg2rad($epsilon);
+        $lambda = $l + 1.915 * sin($gRad) + 0.020 * sin(2 * $gRad); //Ecliptic longitude
+        $beta = 0;                                               //Ecliptic latitude
+        $lambdaRad = deg2rad($lambda);
+
+
+        $alpha = atan(cos($epsilonRad) * tan($lambdaRad));
+
+        $x = cos($lambdaRad);
+        $y = cos($epsilonRad) * sin($lambdaRad);
+        $a = $this->getAngl($x, $y);
+        $alpha = $a['rad'];
+        $delta = asin(sin($epsilonRad) * sin($lambdaRad));
+//============================================================================
+//  экваториальные координаты
+        $l = cos(deg2rad($beta)) * cos(deg2rad($lambda)) ;
+        $m = 0.9175 * cos(deg2rad($beta)) * sin(deg2rad($lambda))
+            - 0.3978 * sin(deg2rad($beta)) ;
+        $n = 0.3978 * cos(deg2rad($beta)) * sin(deg2rad($lambda)) + 0.9175 * sin(deg2rad($beta)) ;
+        $a = $this->getAngl($l,$m) ;
+        $alpha = $a['rad'] ;
+
+        $delta = asin($n) ;
+
+//      звёздное время
+        $gmst = $this->gmstClc($mjd) ;
+        $theta0 = $gmst ;
+        $theta0Deg = rad2deg($theta0) ;
+
+        $alphaDeg = rad2deg($alpha) ;
+        $deltaDeg = rad2deg($delta) ;
+//        $alpha1Deg = rad2deg($alpha1) ;
+//        $delta1Deg = rad2deg($delta1) ;
+// Для сопоставления с тестовыми данными
+// делаю преобразование угвой меры(град) в часовую для прямого восхождения
+// для углов склонения выделяем в явном виде минуты
+        $alphaHour = $alphaDeg / 15 ;
+        $alphaH = floor($alphaHour) ;
+        $alphaM = floor($this->frac($alphaHour) * 60) ;
+//        $alpha1Hour = $alpha1Deg / 15 ;
+//        $alpha1H = floor($alpha1Hour) ;
+//        $alpha1M = floor($this->frac($alpha1Hour) * 60) ;
+        $deltaD = floor($deltaDeg) ;
+        $deltaM = floor($this->frac($deltaDeg) * 60) ;
+//        $delta1D = floor($delta1Deg) ;
+//        $delta1M = floor($this->frac($delta1Deg) * 60) ;
+//    горизонтальные координаты с нулём азимута на СЕВЕР
+        $tauDeg = $theta0Deg - $alphaDeg ;   // градусы часового угла
+        $tauRad = deg2rad($tauDeg) ;
+        $sinH = sin($delta) * sin($lat) + cos($delta) * cos($tauRad)*cos($lat) ;
+        $h = asin($sinH) ;
+        $sinAz = -cos($delta) * sin($tauRad)  ; //   /cos($h) ;
+        $cosAz = (sin($delta) * cos($lat) -
+            cos($delta) * cos($tauRad) * sin($lat)) ; //  /cos($h) ;
+        $a = $this->getAngl($cosAz,$sinAz) ;
+        $azDeg = $a['deg'] ;
+        $hDeg = rad2deg($h) ;
+        return [
+            'eql' => [                    // эклиптическая система
+                'lambda' => $lambda,
+                'lambdaMod' => $this->modulo($lambda, 360),
+                'beta' => $beta,
+            ],
+            'equ' => [                   // экваториальная система
+                'alpha' => rad2deg($alpha),
+                'delta' => rad2deg($delta),
+                'alphaH' => $alphaH . ':' . $alphaM,
+                'deltaDeg' => $deltaD . ':' . $deltaM,
+                'm,l:' => $m . ' , ' .$l,
+            ],
+            'hor' => [                  // горизонтальная
+                'az' => $azDeg ,
+                'h'  => $hDeg,
+            ],
+        ] ;
+
+
+
+
+
+
+//============================================================================
+    }
     /**
      * вычисление среднего гринвического звёздного времени
      *  по модифицированному юлианскому времени
      * @param $mjd
      * @return float  - среднее гринвическое звёздное время [рад]
      */
-    protected function gmstClc($mjd) {
-        $mjd0 = floor($mjd) ;    // на начало суток
-        $secs = $this->SECS ;
+    protected function gmstClc($mjd)
+    {
+        $mjd0 = floor($mjd);    // на начало суток
+        $secs = $this->SECS;
 //        $ut = $secs * ($mjd - $mjd0) ;  //[sec]
 //       ut здесь кол секунд текущих суток. Заменил на прямое вычисление
 //       см. ниже
 //    долготу переводим в секунды (1h = 15 град)
-        $long = $this->longitude ;
-        $longDeg = rad2deg($long) ;
-        $longSec = $longDeg/15 * 3600 ;
-        $tF = $this->dTFormat ;
+        $long = $this->longitude;
+        $longDeg = rad2deg($long);
+        $longSec = $longDeg / 15 * 3600;
+        $tF = $this->dTFormat;
         $min = $tF['i'];
         $sec = $tF['s'];
         $hour = $tF['h'];
 
-        $utSec = $hour * 3600 + $min * 60 + $sec ;
+        $utSec = $hour * 3600 + $min * 60 + $sec;
 // коэфф перед utSec - это звёздныйГод/СолнечныйГод (разница 1 сутки)
 //        366.2422/365.2422
 // начальное значение - это 6h41m50.54841sec ,
 // т.е. угол на начало эры J2000.  Дальше идёт вычисление на тек дату.
 //    скорее всего обрезали какое-то степенное разложение
 //    GMST of 0h UT1 = 6h41m50.54841sec + 8640184.812866T + .....
-        $t0 = ($mjd0 - 51544.5) / 36525.0 ; // кол столетий от эпохи J2000
+        $t0 = ($mjd0 - 51544.5) / 36525.0; // кол столетий от эпохи J2000
         $gmst = 24110.54841 + 8640184.812866 * $t0 +
             1.0027379093 * $utSec
-            + (0.093104 - 0.0000062 * $t0) * $t0 * $t0 ;  // сек
-        $gmst = $gmst + $longSec ;
-        $theta0 = (2* pi() / $secs ) *
-            $this->modulo($gmst,$secs) ;     //  рад
-        return $theta0 ;
+            + (0.093104 - 0.0000062 * $t0) * $t0 * $t0;  // сек
+        $gmst = $gmst + $longSec;
+        $theta0 = (2 * pi() / $secs) *
+            $this->modulo($gmst, $secs);     //  рад
+        return $theta0;
     }
 
     /**

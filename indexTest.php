@@ -53,7 +53,7 @@ $cs = new CoordinateSystem() ;
 //$t = '2020-05-07 15:45:00' ;
 //$t = '2020-05-21 05:03:00' ;
 //$t = '2020-05-23 04:34:00' ;
-$t = '2020-05-31 22:20:00' ;
+$t = '2020-07-01 14:13:00' ;
 //$v = [1,2,3] ;
 //$vOut = $cs->setTime($t)
 //->equ2ecl($v) ;
@@ -72,13 +72,23 @@ $town = 'OREN' ;
 
 echo '<b>'. 'town: ' . $town . '; t: ' . $t . '</b><br>' ;
 
-$vOut = $cs->setTime($t)
-//->setGeographCoord(51.4851,-0,0045)
-    ->setGeographCoord($lat,$long)
-    ->miniMoon() ;
-$vOut1 = $cs->miniMoon1() ;
-var_dump($vOut);
+//$vOut = $cs->setTime($t)
+//    ->setGeographCoord($lat,$long)
+//    ->miniMoon() ;
+//$vOut1 = $cs->miniMoon1() ;
+//var_dump($vOut);
+//var_dump($vOut1);
+//echo '----------------miniSun:---------------' .'<br>' ;
+ $cs->setTime($t)
+    ->setGeographCoord($lat,$long);
+//$vOut = $cs->miniSun() ;
+echo '----------------miniSun1:---------------' .'<br>' ;
+$vOut1 = $cs->miniSun1() ;
+//var_dump($vOut);
+echo '----------------miniSun1:---------------' .'<br>' ;
 var_dump($vOut1);
+
+
  ?>
 </body>
 </html>

@@ -58,16 +58,16 @@ date_default_timezone_set('Etc/GMT+0') ;
 //$dl->reportDo('MURM') ;
 
 
-//(new AzimuthReport())
-//->reportDo('OREN') ;
+(new AzimuthReport())
+->reportDo('OREN') ;
 //->reportDo('MURM') ;
 
 //(new MoonPhaseReport())
 //->reportDo('OREN') ;
 
 
-(new MoonAzimuthReport())
-->reportDo('OREN') ;
+//(new MoonAzimuthReport())
+//->reportDo('OREN') ;
 //->reportDo('GMT') ;
 
 //(new AzimuthReport())
