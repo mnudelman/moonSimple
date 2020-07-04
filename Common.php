@@ -3,8 +3,9 @@
 
 class Common
 {
-    const PLANET_ID_EARTH = 0 ;
-    const PLANET_ID_MOON = 1;
+    const OBJECT_ID_EARTH = 0 ;
+    const OBJECT_ID_MOON = 1;
+    const OBJECT_ID_SUN = 2 ;
     const ORBIT_TYPE_CIRCLE = 0;
     const ORBIT_TYPE_ELLIPT = 1;
     const  POINT_TYPE_SUNRISE = 0 ;    // точка восхода

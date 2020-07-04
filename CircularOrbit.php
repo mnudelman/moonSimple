@@ -1,7 +1,7 @@
 <?php
 
 
-class CircularOrbit extends EllipticalOrbit
+class  CircularOrbit extends EllipticalOrbit
 {
     private $cntPoints = [] ;      // контрольные точки(граничные условия)
     public function __construct()  {

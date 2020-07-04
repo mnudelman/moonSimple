@@ -27,7 +27,7 @@
 
  *
  */
-
+use Solaris\MoonPhase1 ;
 
 class MoonPhaseReport extends Report
 {
@@ -46,6 +46,7 @@ class MoonPhaseReport extends Report
         'dEnd' => '',          // дата окончания
         'T'    => 0.,          // период
     ] ;
+    private $moonPhase1Obj ;   // объект класса MoonPhase1
     //---------------------------------------------//
     public function __construct() {
         $this->setDates() ;
@@ -53,13 +54,15 @@ class MoonPhaseReport extends Report
         $this->udtObj = new UpDownTuning() ;
         $this->aPoZObj = new AnglePoZPphi() ;
 
+        $this->moonPhase1Obj = new MoonPhase1() ;
+
         $this->eOrbitObj = (new Orbit())
-            ->setPlanetId(Common::PLANET_ID_EARTH)
+            ->setPlanetId(Common::OBJECT_ID_EARTH)
             ->setOrbitType(Common::ORBIT_TYPE_ELLIPT) ;
         $this->moonOrbitType = Common::ORBIT_TYPE_CIRCLE ;
 //        $this->moonOrbitType = Common::ORBIT_TYPE_ELLIPT ;
         $this->mOrbitObj = (new Orbit())
-            ->setPlanetId(Common::PLANET_ID_MOON)
+            ->setPlanetId(Common::OBJECT_ID_MOON)
             ->setOrbitType($this->moonOrbitType ) ;
         $this->capIni() ;
     }
@@ -78,11 +81,12 @@ class MoonPhaseReport extends Report
 
 //        $this->titleIni() ;
 //        $this->begTab();
-
+        $mOrbitObj = $this->mOrbitObj ;      // орбита Луны
+        $eOrbitObj = $this->eOrbitObj ;      // орбита Земли
+        $parTun = ['deltaSec' => 0] ;
+        $mOrbitObj->setParTuning($parTun) ;
         for ($i = 0; $i < sizeof($this->dateTab); $i++) {
             $date = $this->dateTab[$i] ;
-            $mOrbitObj = $this->mOrbitObj ;      // орбита Луны
-            $eOrbitObj = $this->eOrbitObj ;      // орбита Земли
             $rMoonPar = $mOrbitObj->setTestDT($date)
                 ->getPar() ;
             $rMoonPer = $rMoonPar['period'] ;
@@ -125,6 +129,7 @@ class MoonPhaseReport extends Report
             $this->begTab();
             $dayNumber = 0 ;
             $dayMax = 33 ;
+            $moonPhase = $this->moonPhase1Obj ; // тестовые данные из MoonPhase1
 //            while ($tsMoon  <= $tsMoonEnd || $dayNumber < $dayMax ) {
              while ($tsMoon  <= $tsMoonEnd) {
 
@@ -156,21 +161,27 @@ class MoonPhaseReport extends Report
                   $Tsec = 29.53 * 24 * 3600 ;
                   $lambda =  pi() * ($tsMoon - $tsMoonBeg) /$Tsec ;
                   $Phi =  cos($lambda) ** 2 ;
-
+// тестовые данные из MoonPhase1
+                 $testData = $moonPhase->setTs($tsMoon)
+                 ->getResult() ;
                 $r = [
                     'dayNumber' => $dayNumber,
                     'tsMoon' => $tsMoon,
                     'date' => $date,
                     'thetaE' => $thetaE,
-                    'thetaEGrad' => round($thetaE / pi() * 180,6),
+                    'thetaEGrad' => round($thetaE / pi() * 180,2),
                     'thetaM' => $thetaM,
-                    'thetaMGrad' => round($thetaM / pi() * 180,6),
+                    'thetaMGrad' => round($thetaM / pi() * 180,2),
                     'phi' => $phi,
                     '$phiRad' => $phiRad,
                     'cosPhi' => $cosPhi,
                     'i' => round($iClc,6),
                     'formulaPhi' => $Phi,
                     'i-Phi' => round(1 - $Phi,6),
+                    'test' => [
+                        'illumination' => round($testData['illumination'],2),
+                        'age' => round($testData['age'],2),
+                    ]
                 ] ;
 //                var_dump($r);
                 if ($tsMoon < $tsMoonEnd && $tsMoon + $dTs > $tsMoonEnd  ) {
@@ -225,10 +236,12 @@ class MoonPhaseReport extends Report
         $this->setCell('day-number',$tagBeg. $r['dayNumber'] . $tagEnd) ;
         $this->setCell('date',$tagBeg . $r['date']) ;
         $this->setCell('thetaM-Grad',$tagBeg . $r['thetaMGrad'] . $tagEnd) ;
-        $this->setCell('thetaE-Grad',$tagBeg . $r['thetaEGrad'] . $tagEnd) ;
+//        $this->setCell('thetaE-Grad',$tagBeg . $r['thetaEGrad'] . $tagEnd) ;
         $this->setCell('i',$tagBeg . $r['i'] . $tagEnd) ;
         $this->setCell('i-formula',$tagBeg . $r['i-Phi'] . $tagEnd) ;
-
+        $testData = $r['test'] ;
+        $this->setCell('test-i',$testData['illumination']) ;
+        $this->setCell('test-age',$testData['age']) ;
         $this->rowOut();
     }
     private function titleIni() {
@@ -252,9 +265,11 @@ class MoonPhaseReport extends Report
             'date',                 // дата
             'thetaM-Grad',    // угол -положение плоскости PmoonFase относительно
                               //         новолуния
-            'thetaE-Grad',    // угол -положение плоскости Pdl
+//            'thetaE-Grad',    // угол -положение плоскости Pdl
             'i',              // освещённость диска
             'i-formula',      // освещённость по формуле
+            'test-i',         // тестовые данные по освещённости
+            'test-age',       // дней от новолуния
         ] ;
         $this->setCap($cap) ;
     }

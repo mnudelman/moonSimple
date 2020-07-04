@@ -11,10 +11,12 @@ class UpDnMontenbruck extends Common
     private $longitudeRad ;       // долгота рад
     private $ts ;             // timestamp
     private $upDnObj ;
+    private $currentObject ;    // объест расчёта (Луна или Солнце) влияет на выбор алгоритма
     //---------------------------------------------//
     public function __construct()
     {
         $this->upDnObj = new CoordinateSystem() ;
+        $this->currentObject = Common::OBJECT_ID_MOON ;   // по умолчанию будет Луна
     }
 
     public function setPoint($lat,$long,$radFlag = false) {
@@ -23,9 +25,13 @@ class UpDnMontenbruck extends Common
         $lat = $this->latitudeRad ;
         $long = $this->longitudeRad ;
         $upDnObj = $this->upDnObj
-            ->setGeographCoord($lat, $long,true) ;
+            ->setPoint($lat, $long,true) ;
 
         return $this;
+    }
+    public function setObjectId($oid) {
+        $this->currentObject = $oid ;
+        return $this ;
     }
     public function setTime($dt,$tsFlag = false) {
         $this->ts = ($tsFlag) ? $dt : strtotime($dt) ;
@@ -43,16 +49,18 @@ class UpDnMontenbruck extends Common
 
     /**
      * расчёт азимута и высоты на тек момент времени
+     * используются алгоритмы из astronomical almanac 1997: miniMoon1, miniSun1
+     * алгоритм определяется по $this->currentObj (Луна или Солнце)
      * @param $ts
-     * @param bool $moonFlag - это Луна(true или умолчание) или Солнце (false)
      */
-    public function azHClc($ts,$moonFlag = true) {
+    public function azHClc($ts) {
         $upDnObj = $this->upDnObj ;
         $tF = $this->decomposeDate($ts,true) ;
         $td = $tF['y'] . '-' . $tF['m'] . '-' . $tF['d'] . ' ' .
             $tF['h'] . ':' . $tF['i'] . ':' . $tF['s'] ;
 //        $vOut = $upDnObj->setTime($td)
 //            ->miniMoon1();
+        $moonFlag = ($this->currentObject === Common::OBJECT_ID_MOON) ;
         $upDnObj->setTime($td) ;
         $vOut = ($moonFlag) ? $upDnObj->miniMoon1() : $upDnObj->miniSun1() ;
 

@@ -47,6 +47,9 @@ include_once __DIR__ . '/montenbruck/Mat3D.php';
 include_once __DIR__ . '/montenbruck/CoordinateSystem.php';
 include_once __DIR__ . "/MoonUpDnMbruckReport.php";
 include_once __DIR__ . "/UpDnMontenbruck.php";
+include_once __DIR__ . '/php-moon-phase-master/Solaris/MoonPhase.php';
+include_once __DIR__ . '/php-moon-phase-master/Solaris/MoonPhase1.php';
+
 date_default_timezone_set('Etc/GMT+0') ;
 //phpinfo() ;
 //(new DayLengthReport())
@@ -58,12 +61,12 @@ date_default_timezone_set('Etc/GMT+0') ;
 //$dl->reportDo('MURM') ;
 
 
-(new AzimuthReport())
-->reportDo('OREN') ;
+//(new AzimuthReport())
+//->reportDo('OREN') ;
 //->reportDo('MURM') ;
 
-//(new MoonPhaseReport())
-//->reportDo('OREN') ;
+(new MoonPhaseReport())
+->reportDo('OREN') ;
 
 
 //(new MoonAzimuthReport())

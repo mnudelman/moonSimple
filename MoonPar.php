@@ -72,13 +72,16 @@
  * https://ru.wikipedia.org/wiki/%D0%9E%D1%80%D0%B1%D0%B8%D1%82%D0%B0_%D0%9B%D1%83%D0%BD%D1%8B
  * Расстояние в перигее 	~362600 км
  * Расстояние в апогее 	~405400 км
+ *
+ * - вынужден добавить поправку $deltaSec - сдвиг даты новолуния
+ *  причём при расчёте фазы это сбивает результат,т.к. в момент новолуния фаза = 0
  */
-
 class MoonPar extends Common
 {
     protected $averPeriod = 29.53058812 ;   // средний синодический месяц 29.530588853
     protected $averPeri = 362600 ;          // км средний перицентр
     protected $averApo = 405400 ;          // км средний апоцентр
+    private $deltaSec = 86400 ;   //    24 * 3600 sec - сдвиг даты новолуния
 //==================================================//
     /**
      * @param $parName - имя параметра
@@ -89,6 +92,17 @@ class MoonPar extends Common
         return $this->getParClc($parName,$parValue) ;
     }
 
+    /**
+     * позорная функция. Но пока без неё не могу обойтись
+     * при расчёте лунной фазы надо deltaSec = 0 , а для азимута и высоты умолчание
+     * @param $partT - подстройка параметров
+     */
+    public function setParTuning($parT) {
+        if (isset($parT['deltaSec'])) {
+            $this->deltaSec = $parT['deltaSec'] ;
+        }
+         return $this ;
+    }
     /**
      * Здесь возможны варианты выбора параметра
      * Например, обращение сразу по имени к процедуре
@@ -101,62 +115,46 @@ class MoonPar extends Common
                     'period' => $this->averPeriod,
                     'peri' => $this->averPeri,
                     'apo' => $this->averApo,
-                    ] ;
-                break ;
+                ];
+                break;
             case 'getPeriod' :           // таблица для опрелеония периода
-                $perTab = $this->getPerTab() ;
-                $perStartTab = $this->getPerStartTab() ;
-                $tTest = $findValue ;
-                $rPer = $this->getPeriod($tTest,$perTab,$perStartTab) ;
+                $perTab = $this->getPerTab();
+                $perStartTab = $this->getPerStartTab();
+                $tTest = $findValue;
+                $rPer = $this->getPeriod($tTest, $perTab, $perStartTab);
 
-                $tsBeg = strtotime($rPer['dBeg']) ;
-                $tsEnd = strtotime($rPer['dEnd']) ;
-                $fMoonTab = $this->fullMoonTab() ;
-                $rFull = $this->findInTabByInterval($fMoonTab,$tsBeg,$tsEnd) ;
-                $rPer['dMiddle'] = $fMoonTab[$rFull['i']]['date'] ;
-// будем коррект на +3600*24 sec олько для h < 12
-                $dBeg = $rPer['dBeg'] ;
-                $dBTf = $this->decomposeDate($dBeg) ;
-                $h = $dBTf['h'] ;
-//                if ($h < 18) {
-//                    $deltaSec = 24*3600 ;         // сутки вперёд
-////                    $deltaSec = 0 ;
-//                }else {
-////                    $deltaSec = 24*3600 - ($dBTf['h'] * 3600 + $dBTf['i'] *60) ;
-////                    $deltaSec =  24*3600 ;         // сутки вперёд  (кажется лучший)
-////                    $deltaSec =  - ($dBTf['h'] * 3600 + $dBTf['i'] *60) ;
-////                    $deltaSec = 0 ;
-//                }
-                $deltaSec =  24*3600 ;          // сутки вперёд  (кажется лучший)
-//                $deltaSec = 0 ;
-//                if ($h < 18) {
-                    $perKeys = ['dBeg','d0','dEnd','dMiddle'] ;
-                    foreach ($rPer as $perId => $perDate) {
-                        if ( false !== array_search( $perId, $perKeys)) {
-                            $ts = strtotime($perDate) + $deltaSec ;
-                            $tf = $this->decomposeDate($ts,true) ;
-                            $perAdd = $tf['y'] . '-' . $tf['m'] . '-' . $tf['d'] . ' ' .
-                                $tf['h'] . ':' . $tf['i'] . ':' . $tf['s'] ;
-                            $rPer[$perId] = $perAdd ;
-                        }
+                $tsBeg = strtotime($rPer['dBeg']);
+                $tsEnd = strtotime($rPer['dEnd']);
+                $fMoonTab = $this->fullMoonTab();
+                $rFull = $this->findInTabByInterval($fMoonTab, $tsBeg, $tsEnd);
+                $rPer['dMiddle'] = $fMoonTab[$rFull['i']]['date'];
+                $dBeg = $rPer['dBeg'];
+                $dBTf = $this->decomposeDate($dBeg);
+                $h = $dBTf['h'];
+//                $deltaSec = 24 * 3600;          // сутки вперёд  (кажется лучший)
+//                $deltaSec = $this->deltaSec ;          //
+                $perKeys = ['dBeg', 'd0', 'dEnd', 'dMiddle'];
+                foreach ($rPer as $perId => $perDate) {
+                    if (false !== array_search($perId, $perKeys)) {
+                        $ts = strtotime($perDate) + $this->deltaSec;
+                        $tf = $this->decomposeDate($ts, true);
+                        $perAdd = $tf['y'] . '-' . $tf['m'] . '-' . $tf['d'] . ' ' .
+                            $tf['h'] . ':' . $tf['i'] . ':' . $tf['s'];
+                        $rPer[$perId] = $perAdd;
                     }
-//                }
-
-
-                return $rPer ;
-
-
-                break ;
+                }
+                return $rPer;
+                break;
             case 'getEllipsePar' :
-                $periTab = $this->periTab() ;
+                $periTab = $this->periTab();
 
-                $apoTab = $this->apoTab() ;
-                $tTest = $findValue ;
-                return $this->getEllipsePar($periTab,$apoTab,$tTest) ;
-                break ;
+                $apoTab = $this->apoTab();
+                $tTest = $findValue;
+                return $this->getEllipsePar($periTab, $apoTab, $tTest);
+                break;
             default:
-                return null ;
-                break ;
+                return null;
+                break;
 
         }
 

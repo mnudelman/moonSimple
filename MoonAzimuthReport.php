@@ -28,7 +28,7 @@ class MoonAzimuthReport extends Report
         $this->aPoZObj = new AnglePoZPphi() ;  // азимут восхода/заката
         $this->cpObj = new CyclePoints();          // расчётные точки
         $this->haObj = new HeightAndAzimuth() ;  //  азимут и высота над горизонтом
-        $this->planetId = Common::PLANET_ID_MOON; //  - ид планеты
+        $this->planetId = Common::OBJECT_ID_MOON; //  - ид планеты
         $this->orbitType = Common::ORBIT_TYPE_CIRCLE ; // - тип орбиты
 //        $this->orbitType = Common::ORBIT_TYPE_ELLIPT ; // - тип орбиты
         $this->orbitObjM = (new Orbit())   // потребуется для вычисление  theta
@@ -37,7 +37,7 @@ class MoonAzimuthReport extends Report
 
         $this->orbitObjE = (new Orbit())   // потребуется для вычисление  theta
         ->setOrbitType(Common::ORBIT_TYPE_ELLIPT)   //тип орбиты (круговая|эллиптическая
-        ->setPlanetId(Common::PLANET_ID_EARTH) ;   //- ид планеты (Земля|Луна)
+        ->setPlanetId(Common::OBJECT_ID_EARTH) ;   //- ид планеты (Земля|Луна)
 
 
 
@@ -87,6 +87,15 @@ class MoonAzimuthReport extends Report
         $this->currentKey = $key;
         $this->titleIni();
         $this->begTab();
+//    тестовые данные из    $this->upDnMbObj
+        $upDnMbObj = $this->upDnMbObj ;
+        $lat = $this->objectTab[$this->currentKey]['lat'] ;
+        $long = $this->objectTab[$this->currentKey]['long'] ;
+        $upDnMbObj->setPoint($lat, $long)
+            ->setObjectId(Common::OBJECT_ID_MOON);
+//
+
+
 
         $r = $this->upDownClc() ;      // точки восхода/заката
 //      -----------------------------------------------------------    //
@@ -122,6 +131,14 @@ class MoonAzimuthReport extends Report
 
         $haO->setTheta($theta0)
         ->setLatitude($latitudeGrad) ;      // широта
+        $upDnMbObj = $this->upDnMbObj ;
+//        $lat = $this->objectTab[$this->currentKey]['lat'] ;
+//        $long = $this->objectTab[$this->currentKey]['long'] ;
+//        $upDnMbObj->setPoint($lat, $long)
+//            ->setObjectId(Common::OBJECT_ID_MOON);
+
+
+
 
         $currentDayTime = false ;
         $cpO = $this->cpObj ;
@@ -152,13 +169,13 @@ class MoonAzimuthReport extends Report
                     break ;
                 case 'pUp':      // восход
                     $cpO->setAttribute('height',0) ;
-                    $cpO->setAttribute('az-test',$azTest) ;
-                    $cpO->setAttribute('h-test',$hTest) ;
+//                    $cpO->setAttribute('az-test',$azTest) ;
+//                    $cpO->setAttribute('h-test',$hTest) ;
                     break ;
                 case 'pDown':    // закат
                     $cpO->setAttribute('height',0) ;
-                    $cpO->setAttribute('az-test',$azTest) ;
-                    $cpO->setAttribute('h-test',$hTest) ;
+//                    $cpO->setAttribute('az-test',$azTest) ;
+//                    $cpO->setAttribute('h-test',$hTest) ;
                     break ;
                 case 'p0' :      // полночь
                     $this->heightAzimuthDo($psi,$dayTime,$ts) ;
@@ -244,11 +261,11 @@ class MoonAzimuthReport extends Report
 //-------------------------------------------------------------
 // корректировка времени восхода/заката по Монтенбрук...
         $upDnMbObj = $this->upDnMbObj ;
-        $lat = $this->objectTab[$this->currentKey]['lat'] ;
-        $long = $this->objectTab[$this->currentKey]['long'] ;
+//        $lat = $this->objectTab[$this->currentKey]['lat'] ;
+//        $long = $this->objectTab[$this->currentKey]['long'] ;
         $ts = strtotime($date) ;
-        $upDnMbObj->setPoint($lat, $long) ;
-            $r = $upDnMbObj->setTime($ts, true)
+//        $upDnMbObj->setPoint($lat, $long) ;
+        $r = $upDnMbObj->setTime($ts, true)
                 ->upDownClc();
         $upTest = ($r[0]['type'] === 'up') ? $r[0] : false ;
         $upTest = ($r[1]['type'] === 'up') ? $r[1] : $upTest ;

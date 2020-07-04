@@ -20,7 +20,7 @@ class DayLengthReport extends Report
         $this->setObjects() ;
         $this->udt = new UpDownTuning() ;
         $this->aPoZPhi = new AnglePoZPphi() ;
-        $this->planetId = Common::PLANET_ID_EARTH; //  - ид планеты
+        $this->planetId = Common::OBJECT_ID_EARTH; //  - ид планеты
         $this->orbitType = Common::ORBIT_TYPE_ELLIPT ; // - тип орбиты
         $this->capIni() ;
     }

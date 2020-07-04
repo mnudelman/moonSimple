@@ -41,7 +41,7 @@ class Orbit extends Common
     ] ;
     //--------------------------------------------------//
     public function __construct() {
-        $this->planetId = self::PLANET_ID_EARTH ;
+        $this->planetId = self::OBJECT_ID_EARTH ;
         $this->orbitType = self::ORBIT_TYPE_CIRCLE ;
     }
 
@@ -53,13 +53,33 @@ class Orbit extends Common
         return $this ;
     }
     public function setPlanetId($pId) {
-        $pList = [self::PLANET_ID_EARTH, self::PLANET_ID_MOON] ;
+        $pList = [self::OBJECT_ID_EARTH, self::OBJECT_ID_MOON] ;
         if (in_array($pId,$pList) ) {
             $this->planetId = $pId ;
+            if (!isset($this->parObjects[$this->planetId])) {
+                if ($this->planetId === self::OBJECT_ID_EARTH) {
+                    $oPar = new EarthPar();
+//                $this->parObjects[$this->planetId] = new EarthPar();
+                } else {
+                    $oPar = new MoonPar(); ;
+//                $this->parObjects[$this->planetId] = new MoonPar();
+                }
+                $this->parObjects[$this->planetId] = $oPar ;
+            }
         }
         return $this ;
     }
 
+    /**
+     * вынужденная заплатка для возможности корректировки
+     * параметров, получаемых из oPar->getParClc
+     * запускать строго после setPlanetId
+     */
+    public function setParTuning($parTuning) {
+        $oPar = $this->parObjects[$this->planetId];
+        $oPar->setParTuning($parTuning) ;
+        return $this ;
+    }
     /**
      * по текущей дате будут перевыбраны параметры орбиты
      * @param $dT
@@ -93,17 +113,17 @@ class Orbit extends Common
      */
     private function clcParms()
     {
-        $oPar = false ;
-        if (!isset($this->parObjects[$this->planetId])) {
-            if ($this->planetId === self::PLANET_ID_EARTH) {
-                $oPar = new EarthPar();
-//                $this->parObjects[$this->planetId] = new EarthPar();
-            } else {
-                $oPar = new MoonPar(); ;
-//                $this->parObjects[$this->planetId] = new MoonPar();
-            }
-            $this->parObjects[$this->planetId] = $oPar ;
-        }
+//        $oPar = false ;
+//        if (!isset($this->parObjects[$this->planetId])) {
+//            if ($this->planetId === self::OBJECT_ID_EARTH) {
+//                $oPar = new EarthPar();
+////                $this->parObjects[$this->planetId] = new EarthPar();
+//            } else {
+//                $oPar = new MoonPar(); ;
+////                $this->parObjects[$this->planetId] = new MoonPar();
+//            }
+//            $this->parObjects[$this->planetId] = $oPar ;
+//        }
         $oPar = $this->parObjects[$this->planetId];
 //        $oPar = new EarthPar();
         $tTest = $this->dateT;    // тестовый момент времени
@@ -140,7 +160,7 @@ class Orbit extends Common
             'd0'=> $period['d0'],     //  начальный момент, в который  theta = 0
             'theta0' => 0.00,  // угол, соотв ts0, - смещение по отношение tsBeg
             // для Солнца - tBeg=tPeri -> thBeg = 0;
-            // t0 = Tравноденствие -> th0 = угол по отнош перигелию
+            // t0 = T равноденствие -> th0 = угол по отнош перигелию
             // для Луны: t0 - полнолуние
             'T'=>  $period['T'] ,
         ] ;

@@ -29,7 +29,7 @@ class MoonUpDnReport extends Report
         $this->udtObj = new UpDownTuning() ;      // вычисление восхода/заката
         $this->aPoZObj = new AnglePoZPphi() ;  // азимут восхода/заката
         $this->haObj = new HeightAndAzimuth() ;  //  азимут и высота над горизонтом
-        $this->planetId = Common::PLANET_ID_MOON; //  - ид планеты
+        $this->planetId = Common::OBJECT_ID_MOON; //  - ид планеты
         $this->orbitType = Common::ORBIT_TYPE_CIRCLE ; // - тип орбиты
 //        $this->orbitType = Common::ORBIT_TYPE_ELLIPT ; // - тип орбиты
         $this->orbitObjM = (new Orbit())   // потребуется для вычисление  theta
@@ -38,7 +38,7 @@ class MoonUpDnReport extends Report
 
         $this->orbitObjE = (new Orbit())   // потребуется для вычисление  theta
         ->setOrbitType(Common::ORBIT_TYPE_ELLIPT)   //тип орбиты (круговая|эллиптическая
-        ->setPlanetId(Common::PLANET_ID_EARTH) ;   //- ид планеты (Земля|Луна)
+        ->setPlanetId(Common::OBJECT_ID_EARTH) ;   //- ид планеты (Земля|Луна)
 
         $this->capIni() ;
     }

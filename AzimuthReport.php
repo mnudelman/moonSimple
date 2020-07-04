@@ -26,7 +26,7 @@ class AzimuthReport extends Report
         $this->aPoZObj = new AnglePoZPphi() ;  // азимут восхода/заката
         $this->cpObj = new CyclePoints();          // расчётные точки
         $this->haObj = new HeightAndAzimuth() ;  //  азимут и высота над горизонтом
-        $this->planetId = Common::PLANET_ID_EARTH; //  - ид планеты
+        $this->planetId = Common::OBJECT_ID_EARTH; //  - ид планеты
         $this->orbitType = Common::ORBIT_TYPE_ELLIPT ; // - тип орбиты
         $this->orbitObj = new Orbit();   // потребуется для вычисление  theta
 
@@ -51,6 +51,13 @@ class AzimuthReport extends Report
         $this->currentKey = $key;
         $this->titleIni();
         $this->begTab();
+//    тестовые данные из    $this->upDnMbObj
+        $upDnMbObj = $this->upDnMbObj ;
+        $lat = $this->objectTab[$this->currentKey]['lat'] ;
+        $long = $this->objectTab[$this->currentKey]['long'] ;
+        $upDnMbObj->setPoint($lat, $long)
+            ->setObjectId(Common::OBJECT_ID_SUN);
+//
 
         $r = $this->upDownClc() ;      // точки восхода/заката
 //      -----------------------------------------------------------    //
@@ -80,9 +87,10 @@ class AzimuthReport extends Report
         $haO = $this->haObj ;     // объект HeightAndAzimuth
 
         $upDnMbObj = $this->upDnMbObj ;
-        $lat = $this->objectTab[$this->currentKey]['lat'] ;
-        $long = $this->objectTab[$this->currentKey]['long'] ;
-        $upDnMbObj->setPoint($lat, $long) ;
+//        $lat = $this->objectTab[$this->currentKey]['lat'] ;
+//        $long = $this->objectTab[$this->currentKey]['long'] ;
+//        $upDnMbObj->setPoint($lat, $long)
+//        ->setObjectId(Common::OBJECT_ID_SUN);
 
 
 
@@ -107,14 +115,13 @@ class AzimuthReport extends Report
                 }
             }
             // тестовые данные
-            $moonFlag = false ;    // значит Солнце
-            $rMb = $upDnMbObj->azHClc($ts,$moonFlag) ;
+//            $moonFlag = false ;    // значит Солнце
+            $rMb = $upDnMbObj->azHClc($ts) ;
             $azTest = $rMb['az'] ;
             $hTest =  $rMb['h'] ;
-
             $cpO->setAttribute('az-test',$azTest)  ;
             $cpO->setAttribute('h-test',$hTest)  ;
-
+//
             switch ($type) {
                 case 'p':        // простая точка расчёта
                     $this->heightAzimuthDo($psi,$dayTime) ;

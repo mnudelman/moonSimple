@@ -77,11 +77,11 @@ class UpDownTuning extends Common
         $this->date0 = $date0;
         $this->latitudeAngle = $lutAngle ;      // широта
         $this->longitudeAngle = $longAngle ;    // долгота
-        $this->planetId = (false === $planetId) ? self::PLANET_ID_EARTH : $planetId;
+        $this->planetId = (false === $planetId) ? self::OBJECT_ID_EARTH : $planetId;
         $this->orbitType = (false === $orbitType) ? self::ORBIT_TYPE_ELLIPT : $orbitType ;
 //        $this->init() ;
         $this->initOrbit() ;
-        if ($this->planetId === Common::PLANET_ID_EARTH) {
+        if ($this->planetId === Common::OBJECT_ID_EARTH) {
             $this->corrTime = $this->corrTimeClc() ;   // корректировка по контрольному значению
         }
         return $this;
@@ -106,7 +106,7 @@ class UpDownTuning extends Common
         $this->orbitPeriod = $rOrbitPar['period']['T'] ;  // период (дней)
         $this->orbitDPerBeg = $rOrbitPar['period']['dBeg'] ;  // начало периода(дата)
         $this->orbitDPerEnd = $rOrbitPar['period']['dEnd'] ;  //окончание периода(дата)
-        if ($this->planetId === Common::PLANET_ID_MOON) {
+        if ($this->planetId === Common::OBJECT_ID_MOON) {
             $this->orbitDPerMiddle = $rOrbitPar['period']['dMiddle'];  //полнолуние(дата)
         }
 
@@ -122,7 +122,7 @@ class UpDownTuning extends Common
      * @return $this
      */
     private function upDownInit() {
-        $notMoonFlag = ($this->planetId !== Common::PLANET_ID_MOON) ;
+        $notMoonFlag = ($this->planetId !== Common::OBJECT_ID_MOON) ;
         if ($notMoonFlag) {
             $this->moonTheta0 = 0 ;
         }
@@ -187,7 +187,7 @@ class UpDownTuning extends Common
     private function initMoon() {
         $lsObj = $this->lsObj ; //   new LatitudeSection();
         $orbitObj = $this->orbitObj ; // это орбита планеты
-        if ($this->planetId === Common::PLANET_ID_MOON) {
+        if ($this->planetId === Common::OBJECT_ID_MOON) {
 //            $rMoonPar = $orbitObj->getPar() ;
 //            $this->orbitDate0 = $rMoonPar['period']['d0'] ;   // дата новолуния
 //            $rMoonPar = $orbitObj->getPar() ;
@@ -201,7 +201,7 @@ class UpDownTuning extends Common
             $orbirEarth = new Orbit();
             $this->orbiEarthObj = $orbirEarth ;
             $orbirEarth->setOrbitType(Common::ORBIT_TYPE_ELLIPT)   //тип орбиты (круговая|эллиптическая
-            ->setPlanetId(Common::PLANET_ID_EARTH) //- ид планеты (Земля|Луна)
+            ->setPlanetId(Common::OBJECT_ID_EARTH) //- ид планеты (Земля|Луна)
             ->setTestDT($this->date0)  ;        //- тестовый момент для выбора параметров орбиты
 
             $this->moonTheta0 = $orbirEarth->getTheta($this->orbitDate0) ;

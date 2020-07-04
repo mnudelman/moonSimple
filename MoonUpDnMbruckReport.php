@@ -24,7 +24,7 @@ class MoonUpDnMbruckReport extends Report
         $this->setObjects() ;
 
         $this->UpDnObj = new UpDnMontenbruck() ;    //  UpDownTuning() ;      // вычисление восхода/заката
-        $this->planetId = Common::PLANET_ID_MOON; //  - ид планеты
+        $this->planetId = Common::OBJECT_ID_MOON; //  - ид планеты
         $this->orbitType = Common::ORBIT_TYPE_CIRCLE ; // - тип орбиты
         $this->orbitObjM = (new Orbit())   // потребуется для вычисление  theta
         ->setOrbitType($this->orbitType)   //тип орбиты (круговая|эллиптическая
@@ -32,7 +32,7 @@ class MoonUpDnMbruckReport extends Report
 
         $this->orbitObjE = (new Orbit())   // потребуется для вычисление  theta
         ->setOrbitType(Common::ORBIT_TYPE_ELLIPT)   //тип орбиты (круговая|эллиптическая
-        ->setPlanetId(Common::PLANET_ID_EARTH) ;   //- ид планеты (Земля|Луна)
+        ->setPlanetId(Common::OBJECT_ID_EARTH) ;   //- ид планеты (Земля|Луна)
 
         $this->capIni() ;
     }

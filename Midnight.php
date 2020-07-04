@@ -78,7 +78,7 @@ class Midnight extends Common
         $lsObj = $this->lsObj;
         $orbirEarth = new Orbit();
         $orbirEarth->setOrbitType(Common::ORBIT_TYPE_ELLIPT)   //тип орбиты (круговая|эллиптическая
-        ->setPlanetId(Common::PLANET_ID_EARTH) //- ид планеты (Земля|Луна)
+        ->setPlanetId(Common::OBJECT_ID_EARTH) //- ид планеты (Земля|Луна)
         ->setTestDT($this->date0);        //- тестовый момент для выбора параметров орбиты
 
 //        $this->moonTheta0 = $orbirEarth->getTheta($this->newMoonDate);

@@ -24,18 +24,25 @@
 <body>
 <?php
 include_once __DIR__ . '/php-moon-phase-master/Solaris/MoonPhase.php';
+include_once __DIR__ . '/php-moon-phase-master/Solaris/MoonPhase1.php';
+date_default_timezone_set('Etc/GMT+0') ;
 // create an instance of the class, and use the current time
-$ts = strtotime('2020-05-31 22:20:00') ;
+$ts = strtotime('2020-05-31 15:00:00') ;
 $moon = new Solaris\MoonPhase($ts);
 $age = round($moon->get('age'), 1);
 $stage = $moon->phase() < 0.5 ? 'waxing' : 'waning';
 $distance = round($moon->get('distance'), 2);
-
+echo 'phase(stage):' . $moon->phase() . '<br>' ;
 echo 'next_new_moon: ' . $moon->get_phase('next_new_moon') . '<br>' ;
 $next = gmdate('G:i:s, j M Y', $moon->get_phase('next_new_moon'));
 echo "The moon is currently $age days old, and is therefore $stage. " . '<br>';
 echo "It is $distance km from the centre of the Earth. " . '<br>';
 echo "The next new moon is at $next." . '<br>';
+
+
+$moon1 = new Solaris\MoonPhase1($ts);
+$res = $moon1->getResult() ;
+var_dump($res);
 
 
 
@@ -80,7 +87,7 @@ echo '<b>'. 'town: ' . $town . '; t: ' . $t . '</b><br>' ;
 //var_dump($vOut1);
 //echo '----------------miniSun:---------------' .'<br>' ;
  $cs->setTime($t)
-    ->setGeographCoord($lat,$long);
+    ->setPoint($lat,$long);
 //$vOut = $cs->miniSun() ;
 echo '----------------miniSun1:---------------' .'<br>' ;
 $vOut1 = $cs->miniSun1() ;

@@ -28,7 +28,7 @@ class CoordinateSystem extends montenbruck\Mat3D
     public function __construct()
     {
         parent::__construct();
-        $this->spaceObjId = Common::PLANET_ID_MOON ;
+        $this->spaceObjId = Common::OBJECT_ID_MOON ;
     }
 
     public function setTime($t,$tZone = 0)
@@ -69,7 +69,15 @@ class CoordinateSystem extends montenbruck\Mat3D
         return $dOfY ;
 
     }
-    public function setGeographCoord($lat,$long,$radFlag = false) {
+
+    /**
+     * Географические координаты точки
+     * @param $lat
+     * @param $long
+     * @param bool $radFlag
+     * @return $this
+     */
+    public function setPoint($lat, $long, $radFlag = false) {
         $this->latitude = ($radFlag) ? $lat : deg2rad($lat) ;
         $this->longitude = ($radFlag) ? $long : deg2rad($long) ;
         return $this ;
@@ -192,6 +200,75 @@ class CoordinateSystem extends montenbruck\Mat3D
     }
 
     /**
+     * Расчёт экваториальных координат из эклиптических прямым расчётом
+     * (без использования матричных преобразований ) из
+     * astronomical almanac 1997
+     * @param $lambda    - эклиптическая широта
+     * @param $beta      -               долгота
+     */
+    private function eql2equ1($lambda,$beta)
+    {
+        //  экваториальные координаты
+        $l = cos(deg2rad($beta)) * cos(deg2rad($lambda));
+        $m = 0.9175 * cos(deg2rad($beta)) * sin(deg2rad($lambda))
+            - 0.3978 * sin(deg2rad($beta));
+        $n = 0.3978 * cos(deg2rad($beta)) * sin(deg2rad($lambda)) + 0.9175 * sin(deg2rad($beta));
+        $a = $this->getAngl($l, $m);
+        $alpha = $a['rad'];      // прямое восхождение
+        $alphaDeg = $a['deg'] ;
+        $aHour = $this->deg2hour($alphaDeg) ;    // в часовой формат
+        $delta = asin($n);       // склонение
+        $deltaDeg = rad2deg($delta) ;
+        return [
+            'rad' => ['alpha' => $alpha, 'delta' => $delta],
+            'deg' => ['alpha' => $alphaDeg, 'delta' => $deltaDeg],
+            'hour' => ['alpha' => $aHour['h'] . ':' . $aHour['m'] . ':' .$aHour['s']],
+        ] ;
+    }
+
+    /**
+     * преобразовать экваториальные координаты в горизонтальные
+     *  прямым расчётом (без использования матричных преобразований ) из
+     * astronomical almanac 1997
+     * горизонтальные координаты с нулём азимута на СЕВЕР
+     * @param $theta0  - звёздное время
+     * @param $alpha   - прямое восхождение
+     * @param $delta   - склонение
+     * @param $lat     - географическая широта
+     * все параметры в радианах
+     */
+    private function equ2hor1($theta0,$alpha,$delta,$lat) {
+        $theta0Deg = rad2deg($theta0) ;
+        $alphaDeg = rad2deg($alpha) ;
+        $tauDeg = $theta0Deg - $alphaDeg ;   // градусы часового угла
+        $tauRad = deg2rad($tauDeg) ;
+        $sinH = sin($delta) * sin($lat) + cos($delta) * cos($tauRad)*cos($lat) ;
+        $h = asin($sinH) ;
+        $sinAz = -cos($delta) * sin($tauRad)  ; //   /cos($h) ;
+        $cosAz = (sin($delta) * cos($lat) -
+            cos($delta) * cos($tauRad) * sin($lat)) ; //  /cos($h) ;
+        $a = $this->getAngl($cosAz,$sinAz) ;
+        $azDeg = $a['deg'] ;
+        $azRad = $a['rad'] ;
+        $hDeg = rad2deg($h) ;
+        return ['rad' => ['az' => $azRad, 'h' => $h],
+        'deg' => ['az' => $azDeg, 'h' => $hDeg],
+        ] ;
+    }
+    /**
+     * преобразовать угол(градусы) в часовой формат
+     * 1h = 15deg
+     * @param $angleDeg
+     */
+    private function deg2hour($angleDeg) {
+        $alphaHour = $angleDeg / 15 ;
+        $h = floor($alphaHour) ;
+        $minutes = $this->frac($alphaHour) * 60 ;
+        $m = floor($minutes) ;
+        $s = floor($this->frac($minutes) * 60) ;
+        return ['h' => $h, 'm' => $m, 's' => $s] ;
+   }
+    /**
      * Экваторальные координаты Луны
      *    - время в юлианских столетиях от эпохи J2000
      * время определяется один раз через setTime()
@@ -285,6 +362,11 @@ class CoordinateSystem extends montenbruck\Mat3D
             ],
         ] ;
     }
+
+    /**
+     * Расчёт азимута, высоты Луны по алгоритму astronomical almanac 1997
+     * @return array
+     */
     public function miniMoon1()
     {
 // astronomical almanac for the year 1997
@@ -383,63 +465,20 @@ class CoordinateSystem extends montenbruck\Mat3D
         $r = 1/sin(deg2rad($Pi)) ;
         $sd = 0.2725 * $Pi ;
 //  экваториальные координаты
-    $l = cos(deg2rad($beta)) * cos(deg2rad($lambda)) ;
-    $m = 0.9175 * cos(deg2rad($beta)) * sin(deg2rad($lambda))
-        - 0.3978 * sin(deg2rad($beta)) ;
-    $n = 0.3978 * cos(deg2rad($beta)) * sin(deg2rad($lambda)) + 0.9175 * sin(deg2rad($beta)) ;
-    $a = $this->getAngl($l,$m) ;
-    $alpha = $a['rad'] ;
-
-    $delta = asin($n) ;
-//      звёздное время
-        $gmst = $this->gmstClc($mjd) ;
-        $theta0 = $gmst ;
-        $theta0Deg = rad2deg($theta0) ;
-
-    // топоцентрические координаты
-       $x =$r * $l ;    // r*cos(delta)*cos(alpha)
-       $y = $r * $m ;  // r*cos(delta)*sin(alpha).
-       $z =$r * $n ;   // r*n=r*sin(delta)
-       $phi1 = rad2deg($lat) ;   // широта  град
-
-       $x1 = $x - cos(deg2rad($phi1)) * cos(deg2rad($theta0Deg)) ;
-       $y1 = $y - cos(deg2rad($phi1)) * sin(deg2rad($theta0Deg)) ;
-       $z1 = $z - sin(deg2rad($phi1)) ;
-       $r1 = sqrt($x1 * $x1 + $y1 * $y1 + $z1 * $z1) ;
-//       $alpha1 = atan($y1 / $x1) ;
-        $a = $this->getAngl($x1,$y1) ;
-        $alpha1 = $a['rad'] ;
-
-
-       $delta1 = asin($z1/$r1) ;
-       $alphaDeg = rad2deg($alpha) ;
-       $deltaDeg = rad2deg($delta) ;
-        $alpha1Deg = rad2deg($alpha1) ;
-        $delta1Deg = rad2deg($delta1) ;
-// Для сопоставления с тестовыми данными
-// делаю преобразование угвой меры(град) в часовую для прямого восхождения
-// для углов склонения выделяем в явном виде минуты
-        $alphaHour = $alphaDeg / 15 ;
-        $alphaH = floor($alphaHour) ;
-        $alphaM = floor($this->frac($alphaHour) * 60) ;
-        $alpha1Hour = $alpha1Deg / 15 ;
-        $alpha1H = floor($alpha1Hour) ;
-        $alpha1M = floor($this->frac($alpha1Hour) * 60) ;
-        $deltaD = floor($deltaDeg) ;
-        $deltaM = floor($this->frac($deltaDeg) * 60) ;
-        $delta1D = floor($delta1Deg) ;
-        $delta1M = floor($this->frac($delta1Deg) * 60) ;
+//============================================================
+    $rEqu = $this->eql2equ1($lambda,$beta) ;
+//============================================================
+    //      звёздное время
+    $theta0 = $this->gmstClc($mjd) ;
 //    горизонтальные координаты с нулём азимута на СЕВЕР
-    $tauDeg = $theta0Deg - $alphaDeg ;   // градусы часового угла
-    $tauRad = deg2rad($tauDeg) ;
-    $sinH = sin($delta) * sin($lat) + cos($delta) * cos($tauRad)*cos($lat) ;
-    $h = asin($sinH) ;
-    $sinAz = -cos($delta) * sin($tauRad)  ; //   /cos($h) ;
-    $cosAz = (sin($delta) * cos($lat) -
-              cos($delta) * cos($tauRad) * sin($lat)) ; //  /cos($h) ;
-    $a = $this->getAngl($cosAz,$sinAz) ;
-    $azDeg = $a['deg'] ;
-    $hDeg = rad2deg($h) ;
+    $alphaRad = $rEqu['rad']['alpha'] ;      // прямое восхождение
+    $deltaRad = $rEqu['rad']['delta'] ;      // склонение
+    $rHor = $this->equ2hor1($theta0,$alphaRad,$deltaRad,$lat) ;
+//======================================================================
+    $alphaH = $rEqu['deg']['hour'] ;    // угол в часовой мере
+    $deltaDeg = $rEqu['deg']['delta'] ;
+    $deltaD = floor($deltaDeg) ;        // выделить град : минуты
+    $deltaM = floor($this->frac($deltaDeg) * 60) ;
     return [
         'rInEarthRadius' => $r,          // расстояние в долях земного радиуса
         'rKilometers' => $r * $this->earthRadius,
@@ -450,27 +489,21 @@ class CoordinateSystem extends montenbruck\Mat3D
             'beta' => $beta,
         ],
         'equ' => [                   // экваториальная система
-            'alpha' => rad2deg($alpha),
-            'delta' => rad2deg($delta),
-            'alphaH' => $alphaH . ':' . $alphaM,
-            'deltaDeg' => $deltaD . ':' . $deltaM,
-            'm,l:' => $m . ' , ' .$l,
-        ],
-        'topocentric' => [            // топоцентрическая
-            'alpha1' => rad2deg($alpha1),
-            'delta1' => rad2deg($delta1),
-            'alpha1H' => $alpha1H . ':' . $alpha1M,
-            'delta1Deg' => $delta1D . ':' . $delta1M,
-
+            'alpha' => $rEqu['deg']['alpha'],   // rad2deg($alpha),
+            'delta' => $rEqu['deg']['delta'],   //rad2deg($delta),
+            'alphaH' => $alphaH['h'] .':'.$alphaH['m'] .':'.$alphaH['s'] ,   // $alphaH . ':' . $alphaM,
+            'deltaDegFormat' => $deltaD . ':' . $deltaM,
         ],
         'hor' => [                  // горизонтальная
-            'az' => $azDeg ,
-            'h'  => $hDeg,
+            'az' => $rHor['deg']['az'],       //$azDeg ,
+            'h'  => $rHor['deg']['h'],       //$hDeg,
         ],
     ] ;
     }
 
     /**
+     * по тексту из Монтенбрук .....
+     * результат неверный (ошибку не нашёл)
      * @return array
      */
     public function miniSun()
@@ -526,6 +559,12 @@ class CoordinateSystem extends montenbruck\Mat3D
 
         ];
     }
+
+    /**
+     * азимут, высота Солнца по алгоритму Astronomical almanac 1997
+     * результат удовлетворительный(почти точное совпадение)
+     * @return array[]
+     */
     public function miniSun1()
     {
 // astronomical almanac for the year 1997
@@ -555,7 +594,7 @@ class CoordinateSystem extends montenbruck\Mat3D
 //        E,in minutes of time = (L – alpha),in degrees, multiplied by 4.
 //Horizontal parallax: 0°.0024
 //Semidiameter : 0°.2666/R
-// Light time:04d.0058
+// Light time:0.0058 (????)
 //-----------------------------------------------------------------------------------//
         $jd = $this->jdTime;
         $mjd = $this->mjdTime;
@@ -572,87 +611,51 @@ class CoordinateSystem extends montenbruck\Mat3D
         $epsilon = 23.439 - 0.0000004 * $n;                      // наклон орбиты Зимли к эклиптике
         $gRad = deg2rad($g);
         $epsilonRad = deg2rad($epsilon);
+// эклиптические координаты
         $lambda = $l + 1.915 * sin($gRad) + 0.020 * sin(2 * $gRad); //Ecliptic longitude
         $beta = 0;                                               //Ecliptic latitude
         $lambdaRad = deg2rad($lambda);
 
-
-        $alpha = atan(cos($epsilonRad) * tan($lambdaRad));
-
-        $x = cos($lambdaRad);
-        $y = cos($epsilonRad) * sin($lambdaRad);
-        $a = $this->getAngl($x, $y);
-        $alpha = $a['rad'];
-        $delta = asin(sin($epsilonRad) * sin($lambdaRad));
-//============================================================================
+//================================================================================================================
+//Distance of Sun from Earth,in au:
+$dAU = 1.00014 - 0.01671*cos($gRad) - 0.00014 * cos(2*$gRad) ;
+//        Semidiameter : 0°.2666/R   - угловой размер (полдиаметра) град
+$semidiameter = 0.2666 / $dAU ;
+//================================================================================================================
 //  экваториальные координаты
-        $l = cos(deg2rad($beta)) * cos(deg2rad($lambda)) ;
-        $m = 0.9175 * cos(deg2rad($beta)) * sin(deg2rad($lambda))
-            - 0.3978 * sin(deg2rad($beta)) ;
-        $n = 0.3978 * cos(deg2rad($beta)) * sin(deg2rad($lambda)) + 0.9175 * sin(deg2rad($beta)) ;
-        $a = $this->getAngl($l,$m) ;
-        $alpha = $a['rad'] ;
-
-        $delta = asin($n) ;
-
-//      звёздное время
-        $gmst = $this->gmstClc($mjd) ;
-        $theta0 = $gmst ;
-        $theta0Deg = rad2deg($theta0) ;
-
-        $alphaDeg = rad2deg($alpha) ;
-        $deltaDeg = rad2deg($delta) ;
-//        $alpha1Deg = rad2deg($alpha1) ;
-//        $delta1Deg = rad2deg($delta1) ;
-// Для сопоставления с тестовыми данными
-// делаю преобразование угвой меры(град) в часовую для прямого восхождения
-// для углов склонения выделяем в явном виде минуты
-        $alphaHour = $alphaDeg / 15 ;
-        $alphaH = floor($alphaHour) ;
-        $alphaM = floor($this->frac($alphaHour) * 60) ;
-//        $alpha1Hour = $alpha1Deg / 15 ;
-//        $alpha1H = floor($alpha1Hour) ;
-//        $alpha1M = floor($this->frac($alpha1Hour) * 60) ;
-        $deltaD = floor($deltaDeg) ;
-        $deltaM = floor($this->frac($deltaDeg) * 60) ;
-//        $delta1D = floor($delta1Deg) ;
-//        $delta1M = floor($this->frac($delta1Deg) * 60) ;
+//============================================================
+        $rEqu = $this->eql2equ1($lambda,$beta) ;
+//============================================================
+        //      звёздное время
+        $theta0 = $this->gmstClc($mjd) ;
 //    горизонтальные координаты с нулём азимута на СЕВЕР
-        $tauDeg = $theta0Deg - $alphaDeg ;   // градусы часового угла
-        $tauRad = deg2rad($tauDeg) ;
-        $sinH = sin($delta) * sin($lat) + cos($delta) * cos($tauRad)*cos($lat) ;
-        $h = asin($sinH) ;
-        $sinAz = -cos($delta) * sin($tauRad)  ; //   /cos($h) ;
-        $cosAz = (sin($delta) * cos($lat) -
-            cos($delta) * cos($tauRad) * sin($lat)) ; //  /cos($h) ;
-        $a = $this->getAngl($cosAz,$sinAz) ;
-        $azDeg = $a['deg'] ;
-        $hDeg = rad2deg($h) ;
+        $alphaRad = $rEqu['rad']['alpha'] ;      // прямое восхождение
+        $deltaRad = $rEqu['rad']['delta'] ;      // склонение
+        $rHor = $this->equ2hor1($theta0,$alphaRad,$deltaRad,$lat) ;
+//======================================================================
+        $alphaH = $rEqu['deg']['hour'] ;    // угол в часовой мере
+        $deltaDeg = $rEqu['deg']['delta'] ;
+        $deltaD = floor($deltaDeg) ;        // выделить град : минуты
+        $deltaM = floor($this->frac($deltaDeg) * 60) ;
         return [
+            'distanceAU' => $dAU,
+            'semidiameter' => $semidiameter,
             'eql' => [                    // эклиптическая система
                 'lambda' => $lambda,
                 'lambdaMod' => $this->modulo($lambda, 360),
                 'beta' => $beta,
             ],
             'equ' => [                   // экваториальная система
-                'alpha' => rad2deg($alpha),
-                'delta' => rad2deg($delta),
-                'alphaH' => $alphaH . ':' . $alphaM,
-                'deltaDeg' => $deltaD . ':' . $deltaM,
-                'm,l:' => $m . ' , ' .$l,
+                'alpha' => $rEqu['deg']['alpha'],   // rad2deg($alpha),
+                'delta' => $rEqu['deg']['delta'],   //rad2deg($delta),
+                'alphaH' => $alphaH['h'] .':'.$alphaH['m'] .':'.$alphaH['s'] ,   // $alphaH . ':' . $alphaM,
+                'deltaDegFormat' => $deltaD . ':' . $deltaM,
             ],
             'hor' => [                  // горизонтальная
-                'az' => $azDeg ,
-                'h'  => $hDeg,
+                'az' => $rHor['deg']['az'],       //$azDeg ,
+                'h'  => $rHor['deg']['h'],       //$hDeg,
             ],
         ] ;
-
-
-
-
-
-
-//============================================================================
     }
     /**
      * вычисление среднего гринвического звёздного времени
