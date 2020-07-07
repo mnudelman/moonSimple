@@ -41,6 +41,8 @@ include_once __DIR__ . "/MoonAzimuthReport.php";
 include_once __DIR__ . "/CyclePoints.php";
 include_once __DIR__ . "/HeightAndAzimuth.php";
 include_once __DIR__ . "/MoonUpDnReport.php";
+include_once __DIR__ . "/MoonPhaseSimple.php";
+include_once __DIR__ . "/MoonControlPoints.php";
 include_once __DIR__ . '/montenbruck/Montenbruck.php';
 include_once __DIR__ . '/montenbruck/Vec3D.php';
 include_once __DIR__ . '/montenbruck/Mat3D.php';

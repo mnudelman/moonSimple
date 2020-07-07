@@ -46,7 +46,8 @@ class MoonPhase1
 
 	/** @var array quarters */
 	protected $quarters = false;
-
+// ------------ добавка для сравнения -----
+  private $moonAge ;         // угол между Солнцем и Луной, определяющий фазу
 	/**
 	* Constructor
 	*
@@ -148,6 +149,7 @@ class MoonPhase1
 		$this->diameter = $MoonAng;										// Angular diameter (degrees)
 		$this->sundistance = $SunDist;									// Distance to Sun (kilometres)
 		$this->sundiameter = $SunAng;									// Sun's angular diameter (degrees)
+        $this->moonAge = $MoonAge ;
         return $this ;
 	}
     public function getResult() {
@@ -158,6 +160,7 @@ class MoonPhase1
 	        'phase' => $this->phase,
             'illumination' => $this->illumination,
             'age' => $this->age,
+            'ageAngleDeg' => $this->moonAge,
             'distance' => $this->distance,
             'diameter' => $this->diameter,
             'sundistace' => $this->sundistance,

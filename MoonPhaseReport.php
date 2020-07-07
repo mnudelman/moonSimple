@@ -37,8 +37,6 @@ class MoonPhaseReport extends Report
     private $udtObj = null ;     // ссылка на объект UpDownTuning
     private $aPoZObj = null;     // объект AnglePoZPhi - азимут восхода/заката
     private $moonOrbitType  ;    // - тип лунной орбиты
-    private $earth = ['id' => 0, 'orbit' => 0] ;
-    private $moon  = ['id' => 0, 'orbit' => 0] ;
     private $eOrbitObj ;       // объект орбита Земли
     private $mOrbitObj ;       // объект орбита Луны
     private $moonMonth = [     // текущий лунный месяц
@@ -46,16 +44,13 @@ class MoonPhaseReport extends Report
         'dEnd' => '',          // дата окончания
         'T'    => 0.,          // период
     ] ;
-    private $moonPhase1Obj ;   // объект класса MoonPhase1
+    private $mPhaseSimpleObj ;
     //---------------------------------------------//
     public function __construct() {
         $this->setDates() ;
         $this->setObjects() ;
         $this->udtObj = new UpDownTuning() ;
         $this->aPoZObj = new AnglePoZPphi() ;
-
-        $this->moonPhase1Obj = new MoonPhase1() ;
-
         $this->eOrbitObj = (new Orbit())
             ->setPlanetId(Common::OBJECT_ID_EARTH)
             ->setOrbitType(Common::ORBIT_TYPE_ELLIPT) ;
@@ -64,73 +59,29 @@ class MoonPhaseReport extends Report
         $this->mOrbitObj = (new Orbit())
             ->setPlanetId(Common::OBJECT_ID_MOON)
             ->setOrbitType($this->moonOrbitType ) ;
+
+        $this->mPhaseSimpleObj = new MoonPhaseSimple() ;
+
         $this->capIni() ;
-    }
-    public function addNewKey($key,$name,$lat,$long) {
-        $this->objectTab[$key] = [
-            'name' => $name,
-            'lat' => $lat,
-            'long' => $long,
-        ] ;
-        $this->currentKey = $key ;
     }
 
     public function reportDo($key = false) {
-        $key = (false === $key) ? $this->currentKey : $key ;
         $this->currentKey = $key ;
 
-//        $this->titleIni() ;
-//        $this->begTab();
-        $mOrbitObj = $this->mOrbitObj ;      // орбита Луны
-        $eOrbitObj = $this->eOrbitObj ;      // орбита Земли
-        $parTun = ['deltaSec' => 0] ;
-        $mOrbitObj->setParTuning($parTun) ;
+        $mPSObj = $this->mPhaseSimpleObj ;      // расчёт фазы
         for ($i = 0; $i < sizeof($this->dateTab); $i++) {
             $date = $this->dateTab[$i] ;
-            $rMoonPar = $mOrbitObj->setTestDT($date)
-                ->getPar() ;
-            $rMoonPer = $rMoonPar['period'] ;
-            $newMoonDate = $rMoonPer['d0'] ;   // дата новолуния
-            $this->moonMonth['dBeg'] = $rMoonPer['dBeg'] ;    // дата новолуния
-            $this->moonMonth['dEnd'] = $rMoonPer['dEnd'] ;    // дата след новолуния
-            $this->moonMonth['T'] =  $rMoonPer['T'] ;    // период (дней)
-            $this->moonMonth['dMiddle'] = $rMoonPer['dMiddle'] ;
-            $thetaMoon0 = $eOrbitObj->setTestDT($date)
-                ->getTheta($newMoonDate) ;
-            $tsMoonBeg = strtotime($rMoonPer['dBeg']) ;    // дата новолуния
-            $tsMoonEnd = strtotime($rMoonPer['dEnd']) ;    // дата след новолуния
-            $tsMoon = $tsMoonBeg ;
-            $dTs = 24 * 3600 ;
-// запихиваем контрольные точки
-            $ts = strtotime($rMoonPer['dBeg']) ;
-            $theta = $eOrbitObj->getTheta($ts,true)  - $thetaMoon0;
-            $mOrbitObj->setControlPoint($ts,$theta) ;
-            $ts = strtotime($rMoonPer['dMiddle']) ;
-            $theta = $eOrbitObj->getTheta($ts,true)  - $thetaMoon0 ;
-            $mOrbitObj->setControlPoint($ts,  $theta + pi()) ;
-            $ts = strtotime($rMoonPer['dEnd']) ;
-            $theta = $eOrbitObj->getTheta($ts,true)  - $thetaMoon0  ;
-            $mOrbitObj->setControlPoint($ts,  $theta + 2*pi()) ;
+            $specPoints = $mPSObj->setDate($date)
+                ->getControlPoints() ;
 
-
-            $specPoints = [
-                'dBeg' => ['date' => $this->moonMonth['dBeg'],
-                    'ts' => strtotime($this->moonMonth['dBeg']),
-                    'tF' => $this->decomposeDate($this->moonMonth['dBeg'])],
-                'dMiddle' => ['date' => $this->moonMonth['dMiddle'],
-                    'ts' => strtotime($this->moonMonth['dMiddle']),
-                    'tF' => $this->decomposeDate($this->moonMonth['dMiddle'])],
-                'dEnd' => ['date' => $this->moonMonth['dEnd'],
-                    'ts' => strtotime($this->moonMonth['dEnd']),
-                    'tF' => $this->decomposeDate($this->moonMonth['dEnd'])],
-            ] ;
-
+            $tsMoonBeg = $specPoints['dBeg']['ts'] ;
+            $tsMoonEnd = $specPoints['dEnd']['ts'] ;
             $this->titleIni() ;
             $this->begTab();
             $dayNumber = 0 ;
             $dayMax = 33 ;
-            $moonPhase = $this->moonPhase1Obj ; // тестовые данные из MoonPhase1
-//            while ($tsMoon  <= $tsMoonEnd || $dayNumber < $dayMax ) {
+            $tsMoon = $tsMoonBeg ;
+            $dTs = 24 * 3600 ;
              while ($tsMoon  <= $tsMoonEnd) {
 
                 $tMF = $this->decomposeDate($tsMoon,true) ;
@@ -144,52 +95,14 @@ class MoonPhaseReport extends Report
                         break ;
                     }
                 }
-
-
-                $thetaE = $eOrbitObj->getTheta($tsMoon,true) - $thetaMoon0 ;
-                $thetaM = $mOrbitObj->getTheta($tsMoon,true) ;
-                $kFit = 1 ; // 32/30  ; // - подгонка для выхода на 0 в след новолуние
-                $phi =  $kFit * ($thetaE - $thetaM) ;
-                $phiRad = $phi / pi() * 180 ;
-                $cosPhi = cos($phi) ;
-                $iClc = 1/2 * (1 - $cosPhi) ;
-                $d = $this->decomposeDate($tsMoon,true) ;
-                $date = $d['y'] . '-' . $d['m'] . '-' . $d['d'] . ' ' .
-                    $d['h'] . ':' . $d['i'] . ':' . $d['s'] ;
-//                * Ф = cos**2(lambda/2)
-//                * lambda = (2pi) * t/29.53
-                  $Tsec = 29.53 * 24 * 3600 ;
-                  $lambda =  pi() * ($tsMoon - $tsMoonBeg) /$Tsec ;
-                  $Phi =  cos($lambda) ** 2 ;
-// тестовые данные из MoonPhase1
-                 $testData = $moonPhase->setTs($tsMoon)
-                 ->getResult() ;
-                $r = [
-                    'dayNumber' => $dayNumber,
-                    'tsMoon' => $tsMoon,
-                    'date' => $date,
-                    'thetaE' => $thetaE,
-                    'thetaEGrad' => round($thetaE / pi() * 180,2),
-                    'thetaM' => $thetaM,
-                    'thetaMGrad' => round($thetaM / pi() * 180,2),
-                    'phi' => $phi,
-                    '$phiRad' => $phiRad,
-                    'cosPhi' => $cosPhi,
-                    'i' => round($iClc,6),
-                    'formulaPhi' => $Phi,
-                    'i-Phi' => round(1 - $Phi,6),
-                    'test' => [
-                        'illumination' => round($testData['illumination'],2),
-                        'age' => round($testData['age'],2),
-                    ]
-                ] ;
-//                var_dump($r);
+                $r = $mPSObj->setDate($tsMoon,true)
+                    ->phaseDo() ;    // вычисление фазы
                 if ($tsMoon < $tsMoonEnd && $tsMoon + $dTs > $tsMoonEnd  ) {
                     $tsMoon = $tsMoonEnd ;
                 } else {
                     $tsMoon += $dTs ;
                 }
-
+//                 $r['dayNumber'] = $dayNumber ;
                 $this->makeRow($r,$specPointFlag) ;
 
                 $dayNumber++ ;
