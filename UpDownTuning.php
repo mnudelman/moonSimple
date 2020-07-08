@@ -19,6 +19,7 @@ class UpDownTuning extends Common
     private $orbitObj ;
     private $orbiEarthObj ;
     private $lsObj ;
+    private $cntPObj;            // MoonControlPoints - контрольные точки Лунной орбиты
     private $timeEpsilon = 60; //300 ; //180; //60; //180 ; //180 ; // sec - точность определния времени восхода/заката
     private $psi0 = false;   // положение точки - полночь, соотв $theta0 (половина дуги,
     private $psi0Earth ;     // нужна Земля отдельно от Луны
@@ -278,18 +279,28 @@ class UpDownTuning extends Common
         // запихиваем контрольные точки
         $eOrbitObj = $this->orbiEarthObj ;
         $mOrbitObj = $this->orbitObj ;
-        $thetaMoon0 = $this->moonTheta0 ;
+//        $thetaMoon0 = $this->moonTheta0 ;
+//
+//        $rMoonPer = [] ;
+//        $rMoonPer['dBeg'] =['date' => $this->orbitDPerBeg,'dTheta' => 0]   ;  // начало периода(дата)
+//        $rMoonPer['dMiddle'] = ['date' => $this->orbitDPerMiddle,'dTheta' => pi()]  ;  //полнолуние(дата)
+//        $rMoonPer['dEnd'] = ['date' => $this->orbitDPerEnd,'dTheta' => 2*pi()]   ;  //окончание периода(дата)
+//        foreach ($rMoonPer as $pointName => $arr) {
+//            $ts = strtotime($arr['date']) ;
+//            $dTheta = $arr['dTheta'] ;
+//            $theta = $eOrbitObj->getTheta($ts,true)  - $thetaMoon0 + $dTheta;
+//            $mOrbitObj->setControlPoint($ts,$theta) ;
+//        }
+        //     контрольные точки лунной орбиты
+        $this->cntPObj = (new MoonControlPoints())
+            ->setMoonOrbit($mOrbitObj)
+            ->setEarthOrbit($eOrbitObj) ;
+        $controlPoints =   // контрольные точки орбиты Луны
+            ($this->cntPObj)
+                ->setDt($this->date0)
+                ->pointsGo() ;
 
-        $rMoonPer = [] ;
-        $rMoonPer['dBeg'] =['date' => $this->orbitDPerBeg,'dTheta' => 0]   ;  // начало периода(дата)
-        $rMoonPer['dMiddle'] = ['date' => $this->orbitDPerMiddle,'dTheta' => pi()]  ;  //полнолуние(дата)
-        $rMoonPer['dEnd'] = ['date' => $this->orbitDPerEnd,'dTheta' => 2*pi()]   ;  //окончание периода(дата)
-        foreach ($rMoonPer as $pointName => $arr) {
-            $ts = strtotime($arr['date']) ;
-            $dTheta = $arr['dTheta'] ;
-            $theta = $eOrbitObj->getTheta($ts,true)  - $thetaMoon0 + $dTheta;
-            $mOrbitObj->setControlPoint($ts,$theta) ;
-        }
+
         return true ;
     }
     private function psi0Tuning() {

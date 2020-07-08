@@ -67,8 +67,8 @@ date_default_timezone_set('Etc/GMT+0') ;
 //->reportDo('OREN') ;
 //->reportDo('MURM') ;
 
-(new MoonPhaseReport())
-->reportDo('OREN') ;
+//(new MoonPhaseReport())
+//->reportDo('OREN') ;
 
 
 //(new MoonAzimuthReport())
@@ -79,10 +79,10 @@ date_default_timezone_set('Etc/GMT+0') ;
 //->reportDo('OREN') ;
 //    ->reportDo('GMT') ;
 
-//(new MoonUpDnReport())
+(new MoonUpDnReport())
 //    ->reportDo('OREN') ;
 //->reportDo('MSC') ;
-//->reportDo('JER') ;
+->reportDo('JER') ;
 //->reportDo('EBURG') ;
 //->reportDo('PETER') ;
 //->reportDo('ARKH') ;

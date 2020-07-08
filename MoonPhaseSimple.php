@@ -120,9 +120,9 @@ class MoonPhaseSimple extends Common
             'thetaMGrad' => rad2deg($thetaM),
             'phi' => $phi,
             'cosPhi' => $cosPhi,
-            'phiDeg' => deg2rad($phi),
-            'phiDegTest' => $testData['ageAngleDeg'],
-            'i' => round($iClc,6),
+            'phiDeg' => round(rad2deg($phi),3),
+            'phiDegTest' => round($testData['ageAngleDeg'],3),
+            'i' => round($iClc,2),
             'formulaPhi' => $Phi,
             'i-Phi' => round(1 - $Phi,6),
             'test' => [

@@ -18,7 +18,8 @@ class MoonAzimuthReport extends Report
     private $planetId ; //  - ид планеты
     private $orbitType  ; // - тип орбиты
     private $moonTheta0 ;
-
+    private $mPhaseSimpleObj ;
+    private $cntPObj;            // MoonControlPoints
     //---------------------------------------------//
     public function __construct() {
         $this->setDates() ;
@@ -39,8 +40,11 @@ class MoonAzimuthReport extends Report
         ->setOrbitType(Common::ORBIT_TYPE_ELLIPT)   //тип орбиты (круговая|эллиптическая
         ->setPlanetId(Common::OBJECT_ID_EARTH) ;   //- ид планеты (Земля|Луна)
 
-
-
+        $this->mPhaseSimpleObj = new MoonPhaseSimple() ;
+//     контрольные точки лунной орбиты
+        $this->cntPObj = (new MoonControlPoints())
+            ->setMoonOrbit($this->orbitObjM)
+            ->setEarthOrbit($this->orbitObjE) ;
         $this->capIni() ;
     }
     public function addNewKey($key,$name,$lat,$long) {
@@ -62,25 +66,34 @@ class MoonAzimuthReport extends Report
         $date0 = $this->dateTab[0] ;
         $orbitObjE = $this->orbitObjE ;
         $orbitObjM = $this->orbitObjM ;
-        $orbitObjE->setTestDT($date0);
-        $orbitObjM->setTestDT($date0);
 
-        $rMoonPar = $orbitObjM->getPar() ;
-        $rMoonPer = $rMoonPar['period'] ;
-        $newMoonDate = $rMoonPer['d0'] ;   // дата новолуния
-        $thetaMoon0 = $orbitObjE->getTheta($newMoonDate) ;
-// запихиваем контрольные точки
-        $ts = strtotime($rMoonPer['dBeg']) ;
-        $theta = $orbitObjE->getTheta($ts,true)  - $thetaMoon0;
-        $orbitObjM->setControlPoint($ts,$theta) ;
-        $ts = strtotime($rMoonPer['dMiddle']) ;
-        $theta = $orbitObjE->getTheta($ts,true)  - $thetaMoon0 ;
-        $orbitObjM->setControlPoint($ts,$theta + pi()) ;
-        $ts = strtotime($rMoonPer['dEnd']) ;
-        $theta = $orbitObjE->getTheta($ts,true)  - $thetaMoon0  ;
-        $orbitObjM->setControlPoint($ts,$theta + 2*pi()) ;
+        $controlPoints =   // контрольные точки орбиты Луны
+            ($this->cntPObj)
+                ->setDt($date0)
+                ->pointsGo() ;
+
+
+
+
+//        $orbitObjE->setTestDT($date0);
+//        $orbitObjM->setTestDT($date0);
+
+//        $rMoonPar = $orbitObjM->getPar() ;
+//        $rMoonPer = $rMoonPar['period'] ;
+//        $newMoonDate = $rMoonPer['d0'] ;   // дата новолуния
+//        $thetaMoon0 = $orbitObjE->getTheta($newMoonDate) ;
+//// запихиваем контрольные точки
+//        $ts = strtotime($rMoonPer['dBeg']) ;
+//        $theta = $orbitObjE->getTheta($ts,true)  - $thetaMoon0;
+//        $orbitObjM->setControlPoint($ts,$theta) ;
+//        $ts = strtotime($rMoonPer['dMiddle']) ;
+//        $theta = $orbitObjE->getTheta($ts,true)  - $thetaMoon0 ;
+//        $orbitObjM->setControlPoint($ts,$theta + pi()) ;
+//        $ts = strtotime($rMoonPer['dEnd']) ;
+//        $theta = $orbitObjE->getTheta($ts,true)  - $thetaMoon0  ;
+//        $orbitObjM->setControlPoint($ts,$theta + 2*pi()) ;
 //-----------------------------------
-
+       $newMoonDate = $controlPoints['dBeg']['date'] ;
 
 
         $key = (false === $key) ? $this->currentKey : $key;
@@ -163,6 +176,14 @@ class MoonAzimuthReport extends Report
             $cpO->setAttribute('az-test',$azTest)  ;
             $cpO->setAttribute('h-test',$hTest)  ;
 //-----------------
+//   фаза Луны
+            $rPhase = ($this->mPhaseSimpleObj)
+                ->setDate($ts,true)
+                ->phaseDo() ;
+            $iPhase = $rPhase['i'] ;      // вычисленная освещённость
+            $iPhaseTest = $rPhase['test']['illumination'] ;    // тестовая освещённость
+            $cpO->setAttribute('iPhase',$iPhase) ;
+            $cpO->setAttribute('iPhaseTest',$iPhaseTest) ;
             switch ($type) {
                 case 'p':        // простая точка расчёта
                     $this->heightAzimuthDo($psi,$dayTime,$ts) ;
@@ -422,7 +443,8 @@ for ($i = 0 ; $i < sizeof($arr); $i++) {
             $hTest = '   -' ;
             $hTest = '   -' ;
         }
-
+        $iPhase = $r['iPhase'] ;
+        $iPhaseTest = $r['iPhaseTest'] ;
 
 
         $this->setCell('ts',$ts) ;
@@ -438,6 +460,8 @@ for ($i = 0 ; $i < sizeof($arr); $i++) {
         $this->setCell('h-test',$hTest) ;
         $this->setCell('az-delta','<b>' . $azDelta . '</b>') ;
         $this->setCell('h-delta','<b>' . $hDelta . '</b>') ;
+        $this->setCell('iPhase',$iPhase) ;
+        $this->setCell('iPhaseTest',$iPhaseTest) ;
         $this->rowOut();
     }
     private function titleIni() {
@@ -467,6 +491,8 @@ for ($i = 0 ; $i < sizeof($arr); $i++) {
             'h-test',
             'az-delta',
             'h-delta',
+            'iPhase',         // фаза
+            'iPhaseTest',     // тестовое значение фазы
         ] ;
         $this->setCap($cap) ;
     }

@@ -21,6 +21,9 @@ class MoonUpDnReport extends Report
     private $moonDateEnd ;
     private $moonDateMiddle ;
     private $upDnMbruckObj ;          // алгоритмы Монтенбрук..., астрономический альманах 1997
+    private $mPhaseSimpleObj ;
+    private $cntPObj;            // MoonControlPoints
+
     //---------------------------------------------//
     public function __construct() {
         $this->setDates() ;
@@ -39,6 +42,11 @@ class MoonUpDnReport extends Report
         $this->orbitObjE = (new Orbit())   // потребуется для вычисление  theta
         ->setOrbitType(Common::ORBIT_TYPE_ELLIPT)   //тип орбиты (круговая|эллиптическая
         ->setPlanetId(Common::OBJECT_ID_EARTH) ;   //- ид планеты (Земля|Луна)
+        $this->mPhaseSimpleObj = new MoonPhaseSimple() ;
+//     контрольные точки лунной орбиты
+        $this->cntPObj = (new MoonControlPoints())
+            ->setMoonOrbit($this->orbitObjM)
+            ->setEarthOrbit($this->orbitObjE) ;
 
         $this->capIni() ;
     }
@@ -165,7 +173,21 @@ class MoonUpDnReport extends Report
                 $iDTest++ ;
                 $test = $rMb[$i + $iDTest] ;
             }
-            $this->makeRow($dN,$row,$test) ;
+            $dt = $test['dt'] ;      // время есть
+// вставляем фазу
+//   фаза Луны
+            $rPhase = ($this->mPhaseSimpleObj)
+                ->setDate($dt)
+                ->phaseDo() ;
+            $iPhase = $rPhase['i'] ;      // вычисленная освещённость
+            $iPhaseTest = $rPhase['test']['illumination'] ;    // тестовая освещённость
+            $rPhase = [
+                'iPhase' => $iPhase,
+                'iPhaseTest' => $iPhaseTest,
+            ] ;
+
+
+            $this->makeRow($dN,$row,$test,$rPhase) ;
         }
     }
 
@@ -227,7 +249,7 @@ class MoonUpDnReport extends Report
         return $res;
 
     }
-    private function makeRow($dayNumber,$r,$rTest) {
+    private function makeRow($dayNumber,$r,$rTest,$rPhase) {
         $point = $r[0] ;
         $tf = $r[1] ;
         $dayTime = $tf['y'] . '-' . $tf['m'] . '-' . $tf['d'] . ' ' .
@@ -243,7 +265,8 @@ class MoonUpDnReport extends Report
         $this->setCell('az-test', round($rTest['az'],3)) ;     // азимут
         $deltaAz =  round($rTest['az']- $point['azimuth'],2) ;
         $this->setCell('delta-az', '<b>' . $deltaAz . '</b>') ;    // азимут
-
+        $this->setCell('iPhase',$rPhase['iPhase']) ;    // фаза
+        $this->setCell('iPhaseTest',$rPhase['iPhaseTest']) ;    // фаза
 
         $this->rowOut();
     }
@@ -275,7 +298,8 @@ class MoonUpDnReport extends Report
             'az-test',      // азимут
 //            'delta-dt',          // время
             'delta-az',      // азимут
-
+            'iPhase',
+            'iPhaseTest',
         ] ;
         $this->setCap($cap) ;
     }
